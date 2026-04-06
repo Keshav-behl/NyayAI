@@ -1,1 +1,27 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Environment
 .env
+.env.local
+.env.*.local
+
+# Build outputs
+dist/
+build/
+coverage/
+logs/
+
+# Prisma
+backend/prisma/migrations/*.sql.bak
+
+# Editor
+.DS_Store
+.vscode/settings.json
+*.swp
+*.swo
+
+# Jest
+jest.config.js.bak
