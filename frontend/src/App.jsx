@@ -8,6 +8,7 @@ import ProfilePage from './pages/ProfilePage'
 import LawyersPage from './pages/LawyersPage'
 import DocumentsPage from './pages/DocumentsPage'
 import ConsultationsPage from './pages/ConsultationsPage'
+import LegalResearchPage from './pages/LegalResearchPage'
 
 function PrivateRoute({ children }) {
   const { user, loading } = useAuth()
@@ -37,6 +38,9 @@ export default function App() {
           } />
           <Route path="/consultations" element={
             <PrivateRoute><ConsultationsPage /></PrivateRoute>
+          } />
+          <Route path="/legal-research" element={
+            <PrivateRoute><LegalResearchPage /></PrivateRoute>
           } />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

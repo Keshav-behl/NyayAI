@@ -14,6 +14,7 @@ const consultationsRouter = require('./routes/consultations');
 const { errorHandler } = require('./middleware/errorHandler');
 const { notFound } = require('./middleware/notFound');
 const logger = require('./utils/logger');
+const legalRouter = require('./routes/legal');
 
 const app = express();
 
@@ -47,6 +48,7 @@ if (process.env.NODE_ENV === 'development') {
   }));
 }
 
+app.use('/api/v1/legal', legalRouter);
 app.use('/health', healthRouter);
 app.use('/api/v1/auth', authRouter);
 app.use('/api/v1/users', usersRouter);
