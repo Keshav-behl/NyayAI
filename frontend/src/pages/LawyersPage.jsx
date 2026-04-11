@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import api from '../services/api'
+import BookingModal from '../components/BookingModal'
 
 const SPECIALIZATIONS = [
   'All', 'Criminal', 'Civil', 'Family', 'Corporate', 'Tax', 'Property',
@@ -30,10 +31,9 @@ function StarRating({ rating }) {
   )
 }
 
-function LawyerCard({ lawyer }) {
+function LawyerCard({ lawyer, onBook, userRole }) {
   return (
     <div className="card hover:border-white/20 transition-colors">
-      {/* Header */}
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 rounded-full bg-saffron-500/20 flex items-center justify-center text-saffron-500 font-heading text-lg">
@@ -50,7 +50,6 @@ function LawyerCard({ lawyer }) {
         </div>
       </div>
 
-      {/* Rating & Experience */}
       <div className="flex items-center gap-4 mb-4">
         <StarRating rating={lawyer.rating} />
         <span className="text-white/30 text-xs">•</span>
@@ -59,12 +58,10 @@ function LawyerCard({ lawyer }) {
         <span className="text-white/50 text-xs">{lawyer.city}, {lawyer.state}</span>
       </div>
 
-      {/* Bio */}
       {lawyer.bio && (
         <p className="text-white/50 text-sm mb-4 line-clamp-2">{lawyer.bio}</p>
       )}
 
-      {/* Specializations */}
       <div className="flex flex-wrap gap-1.5 mb-4">
         {lawyer.specializations.slice(0, 3).map(spec => (
           <span key={spec} className="bg-saffron-500/10 text-saffron-500 text-xs px-2 py-1 rounded-md">
@@ -78,7 +75,6 @@ function LawyerCard({ lawyer }) {
         )}
       </div>
 
-      {/* Languages */}
       <div className="flex flex-wrap gap-1.5 mb-5">
         {lawyer.languages.map(lang => (
           <span key={lang} className="bg-white/5 text-white/50 text-xs px-2 py-1 rounded-md">
@@ -87,7 +83,6 @@ function LawyerCard({ lawyer }) {
         ))}
       </div>
 
-      {/* Footer */}
       <div className="flex items-center justify-between pt-4 border-t border-white/5">
         <div className="flex items-center gap-1.5">
           <div className={`w-2 h-2 rounded-full ${lawyer.isAvailable ? 'bg-green-400' : 'bg-white/20'}`} />
@@ -95,20 +90,29 @@ function LawyerCard({ lawyer }) {
             {lawyer.isAvailable ? 'Available' : 'Unavailable'}
           </span>
         </div>
-        <button className="btn-primary text-sm px-4 py-2">
-          Book Consultation
-        </button>
+        {userRole === 'CLIENT' && (
+          <button
+            onClick={() => onBook(lawyer)}
+            disabled={!lawyer.isAvailable}
+            className="btn-primary text-sm px-4 py-2 disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            Book Consultation
+          </button>
+        )}
       </div>
     </div>
   )
 }
 
 export default function LawyersPage() {
-  const { logout } = useAuth()
+  const { user } = useAuth()
+  const navigate = useNavigate()
   const [lawyers, setLawyers] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [pagination, setPagination] = useState({})
+  const [selectedLawyer, setSelectedLawyer] = useState(null)
+  const [bookingSuccess, setBookingSuccess] = useState(false)
 
   const [filters, setFilters] = useState({
     specialization: '',
@@ -117,9 +121,7 @@ export default function LawyersPage() {
     page: 1,
   })
 
-  useEffect(() => {
-    fetchLawyers()
-  }, [filters])
+  useEffect(() => { fetchLawyers() }, [filters])
 
   const fetchLawyers = async () => {
     setLoading(true)
@@ -134,20 +136,34 @@ export default function LawyersPage() {
       const res = await api.get('/lawyers', { params })
       setLawyers(res.data.data.lawyers)
       setPagination(res.data.data.pagination)
-    } catch (err) {
+    } catch {
       setError('Failed to load lawyers')
     } finally {
       setLoading(false)
     }
   }
 
+  const handleBookingSuccess = () => {
+    setSelectedLawyer(null)
+    setBookingSuccess(true)
+    setTimeout(() => setBookingSuccess(false), 4000)
+  }
+
   return (
     <div className="min-h-screen bg-navy-900">
-      {/* Header */}
+      {selectedLawyer && (
+        <BookingModal
+          lawyer={selectedLawyer}
+          onClose={() => setSelectedLawyer(null)}
+          onSuccess={handleBookingSuccess}
+        />
+      )}
+
       <header className="flex items-center justify-between px-8 py-5 border-b border-white/10">
         <Link to="/dashboard" className="font-heading text-2xl text-gold-400">NyayAI</Link>
         <div className="flex items-center gap-4">
           <Link to="/dashboard" className="text-white/50 hover:text-white text-sm transition-colors">Dashboard</Link>
+          <Link to="/consultations" className="text-white/50 hover:text-white text-sm transition-colors">Consultations</Link>
           <Link to="/profile" className="text-white/50 hover:text-white text-sm transition-colors">Profile</Link>
         </div>
       </header>
@@ -158,7 +174,18 @@ export default function LawyersPage() {
           <p className="text-white/50">Connect with verified advocates across India</p>
         </div>
 
-        {/* Filters */}
+        {bookingSuccess && (
+          <div className="bg-green-500/10 border border-green-500/30 text-green-400 text-sm rounded-lg px-4 py-3 mb-6 flex items-center gap-2">
+            ✅ Consultation booked! <Link to="/consultations" className="underline">View your consultations →</Link>
+          </div>
+        )}
+
+        {error && (
+          <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-sm rounded-lg px-4 py-3 mb-6">
+            {error}
+          </div>
+        )}
+
         <div className="card mb-8">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
@@ -197,13 +224,6 @@ export default function LawyersPage() {
           </div>
         </div>
 
-        {/* Results */}
-        {error && (
-          <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-sm rounded-lg px-4 py-3 mb-6">
-            {error}
-          </div>
-        )}
-
         {loading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {[1,2,3].map(i => (
@@ -230,11 +250,15 @@ export default function LawyersPage() {
             <p className="text-white/40 text-sm mb-4">{pagination.total} lawyers found</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {lawyers.map(lawyer => (
-                <LawyerCard key={lawyer.id} lawyer={lawyer} />
+                <LawyerCard
+                  key={lawyer.id}
+                  lawyer={lawyer}
+                  userRole={user?.role}
+                  onBook={setSelectedLawyer}
+                />
               ))}
             </div>
 
-            {/* Pagination */}
             {pagination.totalPages > 1 && (
               <div className="flex justify-center gap-2 mt-8">
                 <button
