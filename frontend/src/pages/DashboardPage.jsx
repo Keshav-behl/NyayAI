@@ -1,5 +1,5 @@
 import { useAuth } from '../hooks/useAuth'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 
 const ROLE_COLORS = {
   CLIENT: 'bg-blue-500/20 text-blue-300',
@@ -18,10 +18,10 @@ export default function DashboardPage() {
   }
 
   const cards = [
-    { title: 'Documents', desc: 'Upload and analyse legal documents', icon: '📄', week: 'Week 2' },
-    { title: 'Lawyers', desc: 'Find and book verified advocates', icon: '⚖️', week: 'Week 2' },
-    { title: 'AI Research', desc: 'Query IPC, CrPC, and case law', icon: '🤖', week: 'Week 5' },
-    { title: 'Consultations', desc: 'Manage your legal consultations', icon: '💬', week: 'Week 2' },
+    { title: 'Profile', desc: 'Complete your personal details', icon: '👤', week: 'Week 2', link: '/profile', ready: true },
+    { title: 'Documents', desc: 'Upload and analyse legal documents', icon: '📄', week: 'Week 2', link: '/documents', ready: false },
+    { title: 'Lawyers', desc: 'Find and book verified advocates', icon: '⚖️', week: 'Week 2', link: '/lawyers', ready: true },
+    { title: 'AI Research', desc: 'Query IPC, CrPC, and case law', icon: '🤖', week: 'Week 5', link: '#', ready: false },
   ]
 
   return (
@@ -29,6 +29,9 @@ export default function DashboardPage() {
       <header className="flex items-center justify-between px-8 py-5 border-b border-white/10">
         <span className="font-heading text-2xl text-gold-400">NyayAI</span>
         <div className="flex items-center gap-4">
+          <Link to="/profile" className="text-white/60 hover:text-white text-sm transition-colors">
+            Profile
+          </Link>
           <span className={`text-xs font-medium px-3 py-1 rounded-full ${ROLE_COLORS[user?.role] || ''}`}>
             {user?.role}
           </span>
@@ -40,10 +43,8 @@ export default function DashboardPage() {
       </header>
 
       <main className="px-8 py-12 max-w-5xl mx-auto">
-        <h1 className="font-heading text-3xl text-white mb-2">
-          Welcome to NyayAI 🎉
-        </h1>
-        <p className="text-white/50 mb-10">Your backend is connected and auth is working. Week 1 complete.</p>
+        <h1 className="font-heading text-3xl text-white mb-2">Welcome to NyayAI 🎉</h1>
+        <p className="text-white/50 mb-10">Your backend is connected and auth is working.</p>
 
         <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-5 mb-10 flex items-center gap-4">
           <div className="w-3 h-3 rounded-full bg-green-400 animate-pulse" />
@@ -55,16 +56,29 @@ export default function DashboardPage() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {cards.map(c => (
-            <div key={c.title} className="card flex items-start gap-4 opacity-70">
-              <span className="text-3xl">{c.icon}</span>
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <h3 className="text-white font-semibold">{c.title}</h3>
-                  <span className="text-xs bg-white/10 text-white/50 px-2 py-0.5 rounded-full">{c.week}</span>
+            c.ready ? (
+              <Link key={c.title} to={c.link} className="card flex items-start gap-4 hover:border-saffron-500/50 transition-colors cursor-pointer">
+                <span className="text-3xl">{c.icon}</span>
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <h3 className="text-white font-semibold">{c.title}</h3>
+                    <span className="text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full">Ready</span>
+                  </div>
+                  <p className="text-white/40 text-sm">{c.desc}</p>
                 </div>
-                <p className="text-white/40 text-sm">{c.desc}</p>
+              </Link>
+            ) : (
+              <div key={c.title} className="card flex items-start gap-4 opacity-50">
+                <span className="text-3xl">{c.icon}</span>
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <h3 className="text-white font-semibold">{c.title}</h3>
+                    <span className="text-xs bg-white/10 text-white/50 px-2 py-0.5 rounded-full">{c.week}</span>
+                  </div>
+                  <p className="text-white/40 text-sm">{c.desc}</p>
+                </div>
               </div>
-            </div>
+            )
           ))}
         </div>
       </main>
