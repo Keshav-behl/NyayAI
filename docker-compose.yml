@@ -10,7 +10,7 @@ services:
       POSTGRES_PASSWORD: nyayai_password
       POSTGRES_DB: nyayai_db
     ports:
-      - '5432:5432'
+      - '5433:5432'
     volumes:
       - nyayai_pg_data:/var/lib/postgresql/data
     healthcheck:
@@ -19,7 +19,6 @@ services:
       timeout: 5s
       retries: 5
 
-  # Optional: pgAdmin for DB browsing
   pgadmin:
     image: dpage/pgadmin4:latest
     container_name: nyayai_pgadmin

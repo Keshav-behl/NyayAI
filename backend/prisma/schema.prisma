@@ -1,0 +1,268 @@
+// NyayAI - Prisma Schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String   @id @default(uuid())
+  email         String   @unique
+  passwordHash  String
+  role          UserRole @default(CLIENT)
+  isVerified    Boolean  @default(false)
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  profile       ClientProfile?
+  lawyerProfile LawyerProfile?
+  organization  OrganizationMember[]
+  consultations Consultation[]       @relation("ClientConsultations")
+  documents     Document[]
+  refreshTokens RefreshToken[]
+  auditLogs     AuditLog[]
+
+  @@map("users")
+}
+
+enum UserRole {
+  CLIENT
+  LAWYER
+  ORG_ADMIN
+  SUPER_ADMIN
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
+}
+
+model ClientProfile {
+  id                String   @id @default(uuid())
+  userId            String   @unique
+  fullName          String
+  phone             String?
+  city              String?
+  state             String?
+  preferredLanguage String   @default("en")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("client_profiles")
+}
+
+model LawyerProfile {
+  id               String   @id @default(uuid())
+  userId           String   @unique
+  fullName         String
+  barCouncilNumber String   @unique
+  enrollmentState  String
+  specializations  String[]
+  experienceYears  Int      @default(0)
+  languages        String[]
+  city             String
+  state            String
+  bio              String?  @db.Text
+  consultationFee  Decimal  @db.Decimal(10, 2)
+  isVerified       Boolean  @default(false)
+  isAvailable      Boolean  @default(true)
+  rating           Decimal? @db.Decimal(3, 2)
+  totalReviews     Int      @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  consultations Consultation[] @relation("LawyerConsultations")
+
+  @@map("lawyer_profiles")
+}
+
+model Organization {
+  id        String  @id @default(uuid())
+  name      String
+  type      OrgType
+  gstin     String?
+  email     String
+  phone     String?
+  address   String?
+  city      String?
+  state     String?
+  plan      OrgPlan @default(STARTER)
+  isActive  Boolean @default(true)
+  apiKey    String? @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  members   OrganizationMember[]
+  documents Document[]
+
+  @@map("organizations")
+}
+
+enum OrgType {
+  LAW_FIRM
+  BANK
+  NBFC
+  ENTERPRISE
+  STARTUP
+}
+
+enum OrgPlan {
+  STARTER
+  PROFESSIONAL
+  ENTERPRISE
+}
+
+model OrganizationMember {
+  id             String        @id @default(uuid())
+  organizationId String
+  userId         String
+  role           OrgMemberRole @default(MEMBER)
+  joinedAt       DateTime      @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, userId])
+  @@map("organization_members")
+}
+
+enum OrgMemberRole {
+  OWNER
+  ADMIN
+  MEMBER
+  VIEWER
+}
+
+model Consultation {
+  id           String             @id @default(uuid())
+  clientId     String
+  lawyerId     String
+  status       ConsultationStatus @default(PENDING)
+  type         ConsultationType   @default(VIDEO)
+  scheduledAt  DateTime?
+  startedAt    DateTime?
+  endedAt      DateTime?
+  notes        String?            @db.Text
+  clientRating Int?
+  clientReview String?            @db.Text
+  amount       Decimal            @db.Decimal(10, 2)
+  isPaid       Boolean            @default(false)
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  client User          @relation("ClientConsultations", fields: [clientId], references: [id])
+  lawyer LawyerProfile @relation("LawyerConsultations", fields: [lawyerId], references: [id])
+
+  @@map("consultations")
+}
+
+enum ConsultationStatus {
+  PENDING
+  CONFIRMED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum ConsultationType {
+  VIDEO
+  AUDIO
+  CHAT
+  IN_PERSON
+}
+
+model Document {
+  id             String      @id @default(uuid())
+  userId         String
+  organizationId String?
+  title          String
+  category       DocCategory
+  fileUrl        String?
+  fileSize       Int?
+  mimeType       String?
+  isAnonymized   Boolean     @default(false)
+  metadata       Json?
+  status         DocStatus   @default(UPLOADED)
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  user         User          @relation(fields: [userId], references: [id])
+  organization Organization? @relation(fields: [organizationId], references: [id])
+  aiAnalyses   AiAnalysis[]
+
+  @@map("documents")
+}
+
+enum DocCategory {
+  CONTRACT
+  COURT_ORDER
+  FIR
+  LEGAL_NOTICE
+  AFFIDAVIT
+  DEED
+  AGREEMENT
+  OTHER
+}
+
+enum DocStatus {
+  UPLOADED
+  PROCESSING
+  ANALYZED
+  ARCHIVED
+}
+
+model AiAnalysis {
+  id           String       @id @default(uuid())
+  documentId   String
+  analysisType AnalysisType
+  prompt       String?      @db.Text
+  result       Json
+  modelUsed    String       @default("claude-sonnet-4-20250514")
+  tokensUsed   Int?
+  processingMs Int?
+  confidence   Decimal?     @db.Decimal(5, 4)
+  createdAt    DateTime     @default(now())
+
+  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@map("ai_analyses")
+}
+
+enum AnalysisType {
+  DOCUMENT_SUMMARY
+  RISK_ASSESSMENT
+  CLAUSE_EXTRACTION
+  LEGAL_RESEARCH
+  COMPLIANCE_CHECK
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String?
+  action    String
+  entity    String
+  entityId  String?
+  metadata  Json?
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@map("audit_logs")
+}
