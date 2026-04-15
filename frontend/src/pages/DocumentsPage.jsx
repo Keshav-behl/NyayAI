@@ -51,7 +51,7 @@ function FileIcon({ mimeType }) {
   return <span className="text-2xl">📝</span>
 }
 
-function AnalysisModal({ document, onClose }) {
+function AnalysisModal({ document, onClose, onAnalysisComplete }) {
   const [selectedType, setSelectedType] = useState('DOCUMENT_SUMMARY')
   const [analyzing, setAnalyzing] = useState(false)
   const [result, setResult] = useState(null)
@@ -75,7 +75,6 @@ function AnalysisModal({ document, onClose }) {
     setError('')
     setResult(null)
 
-    // Rotating loading messages so user knows it's working
     const messages = [
       'Reading your document...',
       'Extracting text and structure...',
@@ -97,6 +96,7 @@ function AnalysisModal({ document, onClose }) {
       })
       setResult(res.data.data.analysis)
       fetchAnalyses()
+      onAnalysisComplete() // ← triggers document list refresh
     } catch (err) {
       const msg = err.response?.data?.message
       if (err.code === 'ECONNABORTED') {
@@ -116,7 +116,6 @@ function AnalysisModal({ document, onClose }) {
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 px-4">
       <div className="bg-navy-800 border border-white/10 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-white/10 sticky top-0 bg-navy-800">
           <div>
             <h2 className="font-heading text-xl text-white">AI Document Analysis</h2>
@@ -132,7 +131,6 @@ function AnalysisModal({ document, onClose }) {
         </div>
 
         <div className="p-6">
-          {/* Analysis Type Selection */}
           <div className="mb-6">
             <p className="text-white/50 text-sm mb-3">Select analysis type:</p>
             <div className="grid grid-cols-2 gap-2">
@@ -162,14 +160,12 @@ function AnalysisModal({ document, onClose }) {
             </div>
           </div>
 
-          {/* Error */}
           {error && (
             <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-sm rounded-lg px-4 py-3 mb-4">
               {error}
             </div>
           )}
 
-          {/* Loading state */}
           {analyzing && (
             <div className="bg-saffron-500/5 border border-saffron-500/20 rounded-xl p-6 mb-4 text-center">
               <div className="flex justify-center mb-4">
@@ -188,7 +184,6 @@ function AnalysisModal({ document, onClose }) {
             </div>
           )}
 
-          {/* Show existing or new result */}
           {!analyzing && (existingAnalysis && !result) ? (
             <div>
               <div className="flex items-center justify-between mb-3">
@@ -224,6 +219,7 @@ function AnalysisModal({ document, onClose }) {
     </div>
   )
 }
+
 export default function DocumentsPage() {
   const { logout } = useAuth()
   const fileInputRef = useRef(null)
@@ -316,6 +312,7 @@ export default function DocumentsPage() {
         <AnalysisModal
           document={analyzingDoc}
           onClose={() => setAnalyzingDoc(null)}
+          onAnalysisComplete={fetchDocuments}
         />
       )}
 
@@ -353,7 +350,6 @@ export default function DocumentsPage() {
           </div>
         )}
 
-        {/* Upload Form */}
         {showUpload && (
           <div className="card mb-8">
             <h2 className="font-heading text-lg text-white mb-6">Upload New Document</h2>
@@ -426,7 +422,6 @@ export default function DocumentsPage() {
           </div>
         )}
 
-        {/* Document List */}
         {loading ? (
           <div className="space-y-3">
             {[1,2,3].map(i => (
