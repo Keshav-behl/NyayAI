@@ -1,6 +1,7 @@
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const { sanitizeFilename } = require('../utils/fileValidator');
 
 // Ensure uploads directory exists
 const uploadDir = path.join(__dirname, '../../uploads');
@@ -14,8 +15,9 @@ const storage = multer.diskStorage({
   },
   filename: (req, file, cb) => {
     const unique = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
-    const ext = path.extname(file.originalname);
-    cb(null, `${req.user.id}-${unique}${ext}`);
+    const ext = path.extname(file.originalname).toLowerCase();
+    const safeName = sanitizeFilename(`${req.user.id}-${unique}${ext}`);
+    cb(null, safeName);
   },
 });
 
@@ -28,6 +30,7 @@ const fileFilter = (req, file, cb) => {
     'application/msword',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   ];
+
   if (allowed.includes(file.mimetype)) {
     cb(null, true);
   } else {
@@ -38,7 +41,10 @@ const fileFilter = (req, file, cb) => {
 const upload = multer({
   storage,
   fileFilter,
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB
+    files: 1,
+  },
 });
 
 module.exports = upload;

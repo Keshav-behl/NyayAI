@@ -22,7 +22,7 @@ const cards = [
   { title: 'Documents', desc: 'Upload and analyse legal documents', icon: '📄', week: 'Week 2', link: '/documents', ready: true },
   { title: 'Lawyers', desc: 'Find and book verified advocates', icon: '⚖️', week: 'Week 2', link: '/lawyers', ready: true },
   { title: 'Consultations', desc: 'Manage your legal consultations', icon: '📅', week: 'Week 3', link: '/consultations', ready: true },
-  { title: 'AI Research', desc: 'Query IPC, CrPC, and case law', icon: '🤖', week: 'Week 5', link: '#', ready: true },
+  { title: 'AI Research', desc: 'Query IPC, CrPC, and case law', icon: '🤖', week: 'Week 5', link: '/legal-research', ready: true },
 ]
 
   return (

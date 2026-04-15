@@ -1,5 +1,6 @@
 const { Pinecone } = require('@pinecone-database/pinecone');
 const { generateLegalAnswer } = require('../utils/claude');
+const { sanitizeQuestion } = require('../utils/sanitize');
 const { prisma } = require('../utils/prisma');
 const logger = require('../utils/logger');
 
@@ -16,12 +17,18 @@ exports.searchLegal = async (req, res, next) => {
   try {
     const { query, topK = 5 } = req.body;
 
-    logger.info(`Legal search: "${query}" by user ${req.user.id}`);
+    // Security: sanitize query before vector search
+    const safeQuery = sanitizeQuestion(query);
+    if (!safeQuery) {
+      return res.status(400).json({ success: false, message: 'Invalid query' });
+    }
+
+    logger.info(`Legal search by user ${req.user.id} — query length: ${safeQuery.length}`);
 
     const index = getIndex();
     const results = await index.searchRecords({
       namespace: '__default__',
-      query: { inputs: { text: query }, topK },
+      query: { inputs: { text: safeQuery }, topK },
       fields: ['act', 'section', 'title', 'originalText'],
     });
 
@@ -34,9 +41,9 @@ exports.searchLegal = async (req, res, next) => {
       text: hit.fields.originalText,
     }));
 
-    res.json({ success: true, data: { query, sections } });
+    res.json({ success: true, data: { query: safeQuery, sections } });
   } catch (error) {
-    logger.error('Legal search error:', error);
+    logger.error('Legal search error:', error.message);
     next(error);
   }
 };
@@ -46,13 +53,18 @@ exports.askLegal = async (req, res, next) => {
   try {
     const { question } = req.body;
 
-    logger.info(`Legal question: "${question}" by user ${req.user.id}`);
+    // Security: sanitize question
+    const safeQuestion = sanitizeQuestion(question);
+    if (!safeQuestion) {
+      return res.status(400).json({ success: false, message: 'Invalid question' });
+    }
 
-    // Step 1: Search Pinecone for relevant sections
+    logger.info(`Legal question by user ${req.user.id} — length: ${safeQuestion.length}`);
+
     const index = getIndex();
     const results = await index.searchRecords({
       namespace: '__default__',
-      query: { inputs: { text: question }, topK: 5 },
+      query: { inputs: { text: safeQuestion }, topK: 5 },
       fields: ['act', 'section', 'title', 'originalText'],
     });
 
@@ -60,14 +72,13 @@ exports.askLegal = async (req, res, next) => {
       return res.json({
         success: true,
         data: {
-          question,
+          question: safeQuestion,
           answer: 'I could not find relevant legal information for your question. Please try rephrasing or consult a lawyer directly.',
           sources: [],
         },
       });
     }
 
-    // Step 2: Build context from retrieved sections
     const context = results.result.hits
       .map(h => `${h.fields.act} Section ${h.fields.section} — ${h.fields.title}:\n${h.fields.originalText}`)
       .join('\n\n---\n\n');
@@ -79,25 +90,24 @@ exports.askLegal = async (req, res, next) => {
       relevanceScore: Math.round(h._score * 100),
     }));
 
-    // Step 3: Generate AI answer using NVIDIA Llama
-    const answer = await generateLegalAnswer(question, context);
+    const answer = await generateLegalAnswer(safeQuestion, context);
 
-    // Step 4: Log to audit
+    // Security: log only metadata, never log question content or AI answer
     await prisma.auditLog.create({
       data: {
         userId: req.user.id,
         action: 'LEGAL_QUERY',
         entity: 'legal_search',
-        metadata: { question, sourcesCount: sources.length },
+        metadata: {
+          sourcesCount: sources.length,
+          questionLength: safeQuestion.length,
+        },
       },
     });
 
-    res.json({
-      success: true,
-      data: { question, answer, sources },
-    });
+    res.json({ success: true, data: { question: safeQuestion, answer, sources } });
   } catch (error) {
-    logger.error('Legal ask error:', error);
+    logger.error('Legal ask error:', error.message);
     next(error);
   }
 };
