@@ -55,6 +55,8 @@ export default function OrganizationDetailPage() {
   const [editMode, setEditMode] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saveSuccess, setSaveSuccess] = useState('')
+  const [regenerating, setRegenerating] = useState(false)
+  const [confirmRegenerate, setConfirmRegenerate] = useState(false)
 
   const [editForm, setEditForm] = useState({
     name: '', email: '', phone: '', city: '', state: '', gstin: '',
@@ -97,6 +99,22 @@ export default function OrganizationDetailPage() {
       setError(err.response?.data?.message || 'Failed to update organization')
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handleRegenerate = async () => {
+    setRegenerating(true)
+    try {
+      const res = await api.post(`/organizations/${id}/regenerate-key`)
+      setOrg(prev => ({ ...prev, apiKey: res.data.data.apiKey }))
+      setShowApiKey(true)
+      setConfirmRegenerate(false)
+      setSaveSuccess('API key regenerated. Copy it now — it will be hidden again when you leave.')
+      setTimeout(() => setSaveSuccess(''), 5000)
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to regenerate API key')
+    } finally {
+      setRegenerating(false)
     }
   }
 
@@ -347,12 +365,39 @@ export default function OrganizationDetailPage() {
                         Use this key to access NyayAI API programmatically
                       </p>
                     </div>
-                    <button
-                      onClick={() => setShowApiKey(!showApiKey)}
-                      className="text-sm border border-white/20 text-white/60 hover:border-white/40 px-3 py-1.5 rounded-lg transition-colors"
-                    >
-                      {showApiKey ? 'Hide' : 'Show'} Key
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setShowApiKey(!showApiKey)}
+                        className="text-sm border border-white/20 text-white/60 hover:border-white/40 px-3 py-1.5 rounded-lg transition-colors"
+                      >
+                        {showApiKey ? 'Hide' : 'Show'} Key
+                      </button>
+                      {!confirmRegenerate ? (
+                        <button
+                          onClick={() => setConfirmRegenerate(true)}
+                          className="text-sm border border-red-500/30 text-red-400/70 hover:border-red-500/60 hover:text-red-400 px-3 py-1.5 rounded-lg transition-colors"
+                        >
+                          Regenerate
+                        </button>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-red-400/70">Invalidates current key.</span>
+                          <button
+                            onClick={handleRegenerate}
+                            disabled={regenerating}
+                            className="text-sm bg-red-500/20 border border-red-500/40 text-red-400 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50"
+                          >
+                            {regenerating ? 'Regenerating...' : 'Confirm'}
+                          </button>
+                          <button
+                            onClick={() => setConfirmRegenerate(false)}
+                            className="text-sm text-white/40 hover:text-white px-2 py-1.5 transition-colors"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   <div className="bg-black/30 rounded-xl p-4 font-mono text-sm flex items-center justify-between gap-4">
