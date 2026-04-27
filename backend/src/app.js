@@ -15,6 +15,8 @@ const { errorHandler } = require('./middleware/errorHandler');
 const { notFound } = require('./middleware/notFound');
 const logger = require('./utils/logger');
 const legalRouter = require('./routes/legal');
+const organizationsRouter = require('./routes/organizations');
+
 
 const app = express();
 
@@ -37,6 +39,7 @@ const limiter = rateLimit({
 });
 app.use('/api/', limiter);
 
+
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
@@ -55,6 +58,7 @@ app.use('/api/v1/users', usersRouter);
 app.use('/api/v1/documents', documentsRouter);
 app.use('/api/v1/lawyers', lawyersRouter);
 app.use('/api/v1/consultations', consultationsRouter);
+app.use('/api/v1/organizations', organizationsRouter);
 
 app.get('/api/v1', (req, res) => {
   res.json({
