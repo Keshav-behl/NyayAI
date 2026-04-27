@@ -18,12 +18,12 @@ export default function DashboardPage() {
   }
 
 const cards = [
-  { title: 'Profile', desc: 'Complete your personal details', icon: '👤', link: '/profile', ready: true },
-  { title: 'Documents', desc: 'Upload and analyse legal documents', icon: '📄', link: '/documents', ready: true },
-  { title: 'Lawyers', desc: 'Find and book verified advocates', icon: '⚖️', link: '/lawyers', ready: true },
-  { title: 'Consultations', desc: 'Manage your legal consultations', icon: '📅', link: '/consultations', ready: true },
-  { title: 'AI Research', desc: 'Query IPC, CrPC, and Indian case law', icon: '🤖', link: '/legal-research', ready: true },
-  { title: 'Organizations', desc: 'Manage your firm and team', icon: '🏢', link: '/organizations', ready: true },
+  { title: 'Profile', desc: 'Complete your personal details', icon: '👤', week: 'Week 2', link: '/profile', ready: true },
+  { title: 'Documents', desc: 'Upload and analyse legal documents', icon: '📄', week: 'Week 2', link: '/documents', ready: true },
+  { title: 'Lawyers', desc: 'Find and book verified advocates', icon: '⚖️', week: 'Week 2', link: '/lawyers', ready: true },
+  { title: 'Consultations', desc: 'Manage your legal consultations', icon: '📅', week: 'Week 3', link: '/consultations', ready: true },
+  { title: 'AI Research', desc: 'Query IPC, CrPC, and case law', icon: '🤖', week: 'Week 5', link: '/legal-research', ready: true },
+  { title: 'Organizations', desc: 'Manage your firm or enterprise org', icon: '🏢', week: 'Week 6', link: '/organizations', ready: true },
 ]
 
   return (

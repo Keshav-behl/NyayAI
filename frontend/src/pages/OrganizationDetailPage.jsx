@@ -55,6 +55,8 @@ export default function OrganizationDetailPage() {
   const [editMode, setEditMode] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saveSuccess, setSaveSuccess] = useState('')
+  const [regenerating, setRegenerating] = useState(false)
+  const [confirmRegenerate, setConfirmRegenerate] = useState(false)
 
   const [editForm, setEditForm] = useState({
     name: '', email: '', phone: '', city: '', state: '', gstin: '',
@@ -100,16 +102,19 @@ export default function OrganizationDetailPage() {
     }
   }
 
-  const handleRegenerateKey = async () => {
-    if (!confirm('Are you sure? This will immediately invalidate your current API key. All systems using it will stop working.')) return
+  const handleRegenerate = async () => {
+    setRegenerating(true)
     try {
       const res = await api.post(`/organizations/${id}/regenerate-key`)
       setOrg(prev => ({ ...prev, apiKey: res.data.data.apiKey }))
       setShowApiKey(true)
-      setSaveSuccess('API key regenerated! Update all systems using the old key immediately.')
+      setConfirmRegenerate(false)
+      setSaveSuccess('API key regenerated. Copy it now — it will be hidden again when you leave.')
       setTimeout(() => setSaveSuccess(''), 5000)
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to regenerate API key')
+    } finally {
+      setRegenerating(false)
     }
   }
 
@@ -375,13 +380,30 @@ export default function OrganizationDetailPage() {
                       >
                         {showApiKey ? 'Hide' : 'Show'} Key
                       </button>
-                      {myRole === 'OWNER' && (
+                      {!confirmRegenerate ? (
                         <button
-                          onClick={handleRegenerateKey}
-                          className="text-sm border border-red-500/30 text-red-400 hover:bg-red-500/10 px-3 py-1.5 rounded-lg transition-colors"
+                          onClick={() => setConfirmRegenerate(true)}
+                          className="text-sm border border-red-500/30 text-red-400/70 hover:border-red-500/60 hover:text-red-400 px-3 py-1.5 rounded-lg transition-colors"
                         >
                           Regenerate
                         </button>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-red-400/70">Invalidates current key.</span>
+                          <button
+                            onClick={handleRegenerate}
+                            disabled={regenerating}
+                            className="text-sm bg-red-500/20 border border-red-500/40 text-red-400 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50"
+                          >
+                            {regenerating ? 'Regenerating...' : 'Confirm'}
+                          </button>
+                          <button
+                            onClick={() => setConfirmRegenerate(false)}
+                            className="text-sm text-white/40 hover:text-white px-2 py-1.5 transition-colors"
+                          >
+                            Cancel
+                          </button>
+                        </div>
                       )}
                     </div>
                   </div>
