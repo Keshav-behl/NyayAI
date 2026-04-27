@@ -4,13 +4,31 @@ export default {
   theme: {
     extend: {
       colors: {
-        saffron: { 500: '#FF6B00', 600: '#E05E00' },
-        navy:    { 800: '#0D1B3E', 900: '#071028' },
-        gold:    { 400: '#F5C842', 500: '#E6B800' },
+        navy: {
+          700: '#171715',
+          800: '#111110',
+          900: '#0a0a0a',
+        },
+        gold: {
+          400: '#c9a96b',
+          500: '#8a7548',
+        },
+        saffron: {
+          500: '#c9a96b',
+          600: '#8a7548',
+        },
+        rule: '#26231d',
+        ink: {
+          DEFAULT: '#f5f1e8',
+          2: '#d8d2c2',
+          3: '#8a8478',
+          4: '#5a5448',
+        },
       },
       fontFamily: {
-        heading: ['"Playfair Display"', 'Georgia', 'serif'],
-        body:    ['"DM Sans"', 'sans-serif'],
+        heading: ['"Instrument Serif"', '"Cormorant Garamond"', 'Georgia', 'serif'],
+        body:    ['"Inter"', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+        mono:    ['"JetBrains Mono"', '"IBM Plex Mono"', 'ui-monospace', 'monospace'],
       },
     },
   },
