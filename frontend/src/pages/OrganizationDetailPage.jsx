@@ -100,6 +100,19 @@ export default function OrganizationDetailPage() {
     }
   }
 
+  const handleRegenerateKey = async () => {
+    if (!confirm('Are you sure? This will immediately invalidate your current API key. All systems using it will stop working.')) return
+    try {
+      const res = await api.post(`/organizations/${id}/regenerate-key`)
+      setOrg(prev => ({ ...prev, apiKey: res.data.data.apiKey }))
+      setShowApiKey(true)
+      setSaveSuccess('API key regenerated! Update all systems using the old key immediately.')
+      setTimeout(() => setSaveSuccess(''), 5000)
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to regenerate API key')
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-navy-900 flex items-center justify-center">
@@ -108,7 +121,7 @@ export default function OrganizationDetailPage() {
     )
   }
 
-  if (error) {
+  if (error && !org) {
     return (
       <div className="min-h-screen bg-navy-900 flex items-center justify-center">
         <div className="text-center">
@@ -177,13 +190,19 @@ export default function OrganizationDetailPage() {
           </div>
         )}
 
+        {error && org && (
+          <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-sm rounded-lg px-4 py-3 mb-6">
+            {error}
+          </div>
+        )}
+
         {/* Tabs */}
         <div className="flex gap-1 mb-8 bg-white/5 rounded-xl p-1 w-fit">
           {['overview', 'members', 'api'].map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors capitalize ${
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                 activeTab === tab
                   ? 'bg-saffron-500 text-white'
                   : 'text-white/50 hover:text-white'
@@ -297,10 +316,12 @@ export default function OrganizationDetailPage() {
         {activeTab === 'members' && (
           <div className="space-y-4">
             <div className="flex items-center justify-between mb-4">
-              <p className="text-white/50 text-sm">{org.members?.length} member{org.members?.length !== 1 ? 's' : ''}</p>
+              <p className="text-white/50 text-sm">
+                {org.members?.length} member{org.members?.length !== 1 ? 's' : ''}
+              </p>
               {isAdminOrOwner && (
                 <div className="bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-white/40 text-sm">
-                  Member invitations — coming in next task
+                  Member invitations — coming next
                 </div>
               )}
             </div>
@@ -347,12 +368,22 @@ export default function OrganizationDetailPage() {
                         Use this key to access NyayAI API programmatically
                       </p>
                     </div>
-                    <button
-                      onClick={() => setShowApiKey(!showApiKey)}
-                      className="text-sm border border-white/20 text-white/60 hover:border-white/40 px-3 py-1.5 rounded-lg transition-colors"
-                    >
-                      {showApiKey ? 'Hide' : 'Show'} Key
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setShowApiKey(!showApiKey)}
+                        className="text-sm border border-white/20 text-white/60 hover:border-white/40 px-3 py-1.5 rounded-lg transition-colors"
+                      >
+                        {showApiKey ? 'Hide' : 'Show'} Key
+                      </button>
+                      {myRole === 'OWNER' && (
+                        <button
+                          onClick={handleRegenerateKey}
+                          className="text-sm border border-red-500/30 text-red-400 hover:bg-red-500/10 px-3 py-1.5 rounded-lg transition-colors"
+                        >
+                          Regenerate
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   <div className="bg-black/30 rounded-xl p-4 font-mono text-sm flex items-center justify-between gap-4">
@@ -367,19 +398,19 @@ export default function OrganizationDetailPage() {
                   <div className="mt-4 bg-yellow-500/5 border border-yellow-500/20 rounded-lg p-3">
                     <p className="text-yellow-400/80 text-xs">
                       🔒 Keep this key secret. Never expose it in frontend code or public repositories.
-                      Treat it like a password.
+                      Regenerating will immediately invalidate the old key.
                     </p>
                   </div>
                 </div>
 
                 <div className="card">
-                  <h3 className="text-white font-semibold mb-4">API Usage</h3>
-                  <div className="bg-black/30 rounded-xl p-4 font-mono text-xs text-white/70 space-y-2">
-                    <p className="text-white/40"># Example API call</p>
-                    <p><span className="text-saffron-500">curl</span> -X POST https://api.nyayai.in/v1/legal/ask \</p>
+                  <h3 className="text-white font-semibold mb-4">Example API Call</h3>
+                  <div className="bg-black/30 rounded-xl p-4 font-mono text-xs text-white/70 space-y-1">
+                    <p className="text-white/40"># Legal Research</p>
+                    <p><span className="text-saffron-500">curl</span> -X POST http://localhost:5001/api/v1/legal/ask \</p>
                     <p className="pl-4">-H <span className="text-green-400">"Authorization: Bearer YOUR_API_KEY"</span> \</p>
                     <p className="pl-4">-H <span className="text-green-400">"Content-Type: application/json"</span> \</p>
-                    <p className="pl-4">-d <span className="text-green-400">{'\'{"question": "What is Section 302 IPC?"}\''}</span></p>
+                    <p className="pl-4">-d <span className="text-green-400">'{"{"}"question": "What is Section 302 IPC?"{"}"}'</span></p>
                   </div>
                 </div>
 

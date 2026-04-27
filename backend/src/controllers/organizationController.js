@@ -164,8 +164,8 @@ exports.getOrganization = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Organization not found' });
     }
 
-    // Security: hide API key from non-owners
-    if (membership.role !== 'OWNER' && membership.role !== 'ADMIN') {
+    // Security: hide API key from non-owners and non-admins
+    if (!['OWNER', 'ADMIN'].includes(membership.role)) {
       organization.apiKey = null;
     }
 
@@ -218,6 +218,55 @@ exports.updateOrganization = async (req, res, next) => {
       success: true,
       message: 'Organization updated successfully',
       data: { organization },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// POST /api/v1/organizations/:id/regenerate-key
+exports.regenerateApiKey = async (req, res, next) => {
+  try {
+    // Security: only OWNER can regenerate
+    const membership = await prisma.organizationMember.findUnique({
+      where: {
+        organizationId_userId: {
+          organizationId: req.params.id,
+          userId: req.user.id,
+        },
+      },
+    });
+
+    if (!membership || membership.role !== 'OWNER') {
+      return res.status(403).json({
+        success: false,
+        message: 'Only the organization owner can regenerate the API key',
+      });
+    }
+
+    const newApiKey = generateApiKey();
+
+    const organization = await prisma.organization.update({
+      where: { id: req.params.id },
+      data: { apiKey: newApiKey },
+    });
+
+    await prisma.auditLog.create({
+      data: {
+        userId: req.user.id,
+        action: 'API_KEY_REGENERATED',
+        entity: 'organization',
+        entityId: req.params.id,
+        metadata: { orgName: organization.name },
+      },
+    });
+
+    logger.info(`API key regenerated for org: ${req.params.id} by user ${req.user.id}`);
+
+    res.json({
+      success: true,
+      message: 'API key regenerated. Update all systems using the old key immediately.',
+      data: { apiKey: newApiKey },
     });
   } catch (error) {
     next(error);

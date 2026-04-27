@@ -35,4 +35,7 @@ router.put('/:id', authenticate, [
   validate,
 ], orgController.updateOrganization);
 
+// POST /api/v1/organizations/:id/regenerate-key
+router.post('/:id/regenerate-key', authenticate, orgController.regenerateApiKey);
+
 module.exports = router;
