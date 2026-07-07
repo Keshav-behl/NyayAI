@@ -1,7 +1,12 @@
 import axios from 'axios'
 
+// In local dev this stays empty and Vite's proxy forwards /api to the
+// backend. In production (Vercel), VITE_API_URL must point at the deployed
+// Render backend since frontend and backend are on different origins.
+const API_BASE = import.meta.env.VITE_API_URL || ''
+
 const api = axios.create({
-  baseURL: '/api/v1',
+  baseURL: `${API_BASE}/api/v1`,
   headers: { 'Content-Type': 'application/json' },
   timeout: 120000,
 })
@@ -21,7 +26,7 @@ api.interceptors.response.use(
       const refreshToken = localStorage.getItem('refreshToken')
       if (refreshToken) {
         try {
-          const res = await axios.post('/api/v1/auth/refresh', { refreshToken })
+          const res = await axios.post(`${API_BASE}/api/v1/auth/refresh`, { refreshToken })
           const { accessToken, refreshToken: newRefresh } = res.data.data
           localStorage.setItem('accessToken', accessToken)
           localStorage.setItem('refreshToken', newRefresh)
