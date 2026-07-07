@@ -1,0 +1,19 @@
+{
+  "name": "nyayai-ingestion",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Standalone scripts for extracting, chunking, and ingesting legal acts into Pinecone",
+  "scripts": {
+    "inspect": "node scripts/inspectSources.js",
+    "extract": "node scripts/extractPdf.js",
+    "chunk": "node scripts/chunkActs.js",
+    "enrich": "node scripts/enrichMetadata.js",
+    "ingest:dry-run": "node scripts/ingestPinecone.js --dry-run",
+    "ingest:full": "node scripts/ingestPinecone.js --full"
+  },
+  "dependencies": {
+    "@pinecone-database/pinecone": "^7.2.0",
+    "dotenv": "^16.4.5",
+    "pdf-parse": "^1.1.1"
+  }
+}

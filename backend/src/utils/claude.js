@@ -1,6 +1,11 @@
 const OpenAI = require('openai');
 const { sanitizeForPrompt } = require('./sanitize');
 
+// nemotron-super is a reasoning model — it emits chain-of-thought via a
+// separate reasoning_content field before the final content, so max_tokens
+// needs headroom beyond what a plain instruct model would need.
+const NVIDIA_MODEL = process.env.NVIDIA_MODEL || 'nvidia/llama-3.3-nemotron-super-49b-v1.5';
+
 let client = null;
 
 const getClient = () => {
@@ -22,7 +27,7 @@ const generateLegalAnswer = async (question, context) => {
   const safeContext = sanitizeForPrompt(context);
 
   const response = await nvidia.chat.completions.create({
-    model: 'meta/llama-3.3-70b-instruct',
+    model: NVIDIA_MODEL,
     messages: [
       {
         role: 'system',
@@ -45,7 +50,7 @@ STRICT RULES:
       },
     ],
     temperature: 0.3,
-    max_tokens: 1500,
+    max_tokens: 4096,
   });
 
   return response.choices[0].message.content;
@@ -93,7 +98,7 @@ For each clause provide:
   const prompt = prompts[analysisType] || prompts.DOCUMENT_SUMMARY;
 
   const response = await nvidia.chat.completions.create({
-    model: 'meta/llama-3.3-70b-instruct',
+    model: NVIDIA_MODEL,
     messages: [
       {
         role: 'system',
@@ -110,10 +115,10 @@ Only analyze the document provided.`,
       },
     ],
     temperature: 0.2,
-    max_tokens: 2000,
+    max_tokens: 4096,
   });
 
   return response.choices[0].message.content;
 };
 
-module.exports = { generateLegalAnswer, analyzeDocument };
+module.exports = { generateLegalAnswer, analyzeDocument, NVIDIA_MODEL };

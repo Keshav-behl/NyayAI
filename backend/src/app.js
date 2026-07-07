@@ -16,6 +16,7 @@ const { notFound } = require('./middleware/notFound');
 const logger = require('./utils/logger');
 const legalRouter = require('./routes/legal');
 const organizationsRouter = require('./routes/organizations');
+const chatRouter = require('./routes/chat');
 
 
 const app = express();
@@ -23,8 +24,19 @@ const app = express();
 app.use(helmet());
 app.use(compression());
 
+// FRONTEND_URL accepts a comma-separated list so both local dev and the
+// deployed Vercel domain can be allowed at once (e.g. after Phase 8 deploy,
+// set FRONTEND_URL="http://localhost:5173,https://nyayai.vercel.app").
+const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:5173')
+  .split(',')
+  .map((o) => o.trim())
+  .filter(Boolean);
+
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+    callback(new Error('Not allowed by CORS'));
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Org-ID'],
@@ -59,6 +71,7 @@ app.use('/api/v1/documents', documentsRouter);
 app.use('/api/v1/lawyers', lawyersRouter);
 app.use('/api/v1/consultations', consultationsRouter);
 app.use('/api/v1/organizations', organizationsRouter);
+app.use('/api/v1/chat', chatRouter);
 
 app.get('/api/v1', (req, res) => {
   res.json({

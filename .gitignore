@@ -14,6 +14,10 @@ build/
 coverage/
 logs/
 
+# User-uploaded files
+backend/uploads/*
+!backend/uploads/.gitkeep
+
 # Prisma
 backend/prisma/migrations/*.sql.bak
 

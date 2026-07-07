@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const pdfParse = require('pdf-parse');
-const { analyzeDocument } = require('../utils/claude');
+const { analyzeDocument, NVIDIA_MODEL } = require('../utils/claude');
 const { validateFileByMagicBytes } = require('../utils/fileValidator');
 const { sanitizeForPrompt } = require('../utils/sanitize');
 const { prisma } = require('../utils/prisma');
@@ -121,7 +121,7 @@ exports.analyzeDoc = async (req, res, next) => {
         documentId,
         analysisType,
         result: { text: result },
-        modelUsed: 'meta/llama-3.3-70b-instruct',
+        modelUsed: NVIDIA_MODEL,
         processingMs,
       },
     });

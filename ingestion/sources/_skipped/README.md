@@ -1,0 +1,3 @@
+Files here are excluded from the ingestion pipeline (not scanned by inspectSources.js, extractPdf.js, or chunkActs.js — those only walk `sources/personal_law` and `sources/cpc`).
+
+- **a1930_____30.pdf** (Hindu Gains of Learning Act, 1930) — the PDF's text layer is corrupted throughout (~32% of extracted words come out character-scrambled, e.g. "Definitions" → "De f i nit i ons"). Likely a broken/non-standard embedded font, not a scanned-image issue, so standard OCR would not reliably fix it. Skipped for the 2026-07-08 ingestion sprint per user decision. To re-include: source a cleaner copy (e.g. from indiacode.nic.in), drop it into `sources/personal_law/`, and re-run Phase 1–2.

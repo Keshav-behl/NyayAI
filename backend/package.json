@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "NyayAI - AI-powered Indian Legal Platform Backend",
   "main": "src/index.js",
+  "engines": {
+    "node": "21.x"
+  },
   "scripts": {
     "dev": "nodemon src/index.js",
     "start": "node src/index.js",

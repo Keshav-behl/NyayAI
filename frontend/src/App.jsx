@@ -12,6 +12,7 @@ import LawyersPage from './pages/LawyersPage'
 import DocumentsPage from './pages/DocumentsPage'
 import ConsultationsPage from './pages/ConsultationsPage'
 import LegalResearchPage from './pages/LegalResearchPage'
+import ChatPage from './pages/ChatPage'
 import OrganizationsPage from './pages/OrganizationsPage'
 import OrganizationDetailPage from './pages/OrganizationDetailPage'
 import { Link, useLocation } from 'react-router-dom'
@@ -161,6 +162,9 @@ export default function App() {
           } />
           <Route path="/legal-research" element={
             <PrivateRoute><LegalResearchPage /></PrivateRoute>
+          } />
+          <Route path="/chat" element={
+            <PrivateRoute><ChatPage /></PrivateRoute>
           } />
           <Route path="/organizations" element={
             <PrivateRoute><OrganizationsPage /></PrivateRoute>
