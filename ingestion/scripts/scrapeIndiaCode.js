@@ -4,31 +4,52 @@ const crypto = require('crypto');
 const cheerio = require('cheerio');
 
 const BASE_URL = 'https://www.indiacode.nic.in';
-// Handle of the "Central Acts" collection — browse-by-shorttitle within it.
-// Confirmed via manual recon: https://www.indiacode.nic.in/handle/123456789/1362/browse?type=shorttitle...
-const CENTRAL_ACTS_HANDLE = '123456789/1362';
 const SOURCES_DIR = path.join(__dirname, '..', 'sources');
 const MANIFEST_PATH = path.join(SOURCES_DIR, '_manifest.json');
 // indiacode.nic.in's WAF blanket-blocks any User-Agent containing "bot"/"crawler"
-// (confirmed: our original descriptive UA got 403, a standard browser UA got 200
-// on the identical request). Using a standard browser UA here, not to evade any
-// real access control — this is public legislative text with no auth/paywall —
-// just to get past a blocklist rule that isn't actually targeting us.
+// (confirmed: a descriptive bot UA got 403, a standard browser UA got 200 on the
+// identical request). Using a standard browser UA here, not to evade any real
+// access control — this is public legislative text with no auth/paywall — just
+// to get past a blocklist rule that isn't targeting us specifically.
 const USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36';
 const REQUEST_DELAY_MS = 1500;
 const MAX_RETRIES = 3;
 
 // Central acts in scope — see plan's "Scope lock" section for the namespace mapping.
+//
+// Item handles were resolved MANUALLY, not by an automated discovery step. The
+// site's browse-by-shorttitle and simple-search pages sit behind Radware Bot
+// Manager (confirmed via the BNI_persistence cookie) and require real browser
+// behavior (JS execution) to actually filter/search — a plain HTTP request gets
+// served an unfiltered/default page instead of an error, which is worse than a
+// clean failure since it looks like a match. Item pages and PDF bitstreams
+// themselves have no such gate, so once you know an act's handle, fetching it
+// is fully reliable — that's what this script automates.
+//
+// IPC and CrPC are further special-cased: both were delisted from the live
+// Central Acts collection when BNS/BNSS took over in 2023-24 and only exist
+// in the separate Repealed Acts registry (repealed-act.jsp), which has no
+// handle-based item page at all — just a direct PDF link.
 const TARGET_ACTS = [
-  { shortTitle: 'Bharatiya Nyaya Sanhita', year: 2023, namespace: 'bns', startsWith: 'B' },
-  { shortTitle: 'Bharatiya Nagarik Suraksha Sanhita', year: 2023, namespace: 'bnss', startsWith: 'B' },
-  { shortTitle: 'Indian Penal Code', year: 1860, namespace: 'ipc', startsWith: 'I' },
-  { shortTitle: 'Code of Criminal Procedure', year: 1973, namespace: 'statutes', startsWith: 'C' },
-  { shortTitle: 'Indian Contract Act', year: 1872, namespace: 'statutes', startsWith: 'I' },
-  { shortTitle: 'Consumer Protection Act', year: 2019, namespace: 'statutes', startsWith: 'C' },
-  { shortTitle: 'Right to Information Act', year: 2005, namespace: 'statutes', startsWith: 'R' },
-  { shortTitle: 'Guardians and Wards Act', year: 1890, namespace: 'personal_law', startsWith: 'G' },
-  { shortTitle: 'Code of Civil Procedure', year: 1908, namespace: 'cpc', startsWith: 'C' },
+  { shortTitle: 'Bharatiya Nyaya Sanhita', year: 2023, namespace: 'bns', itemHandle: '20062' },
+  { shortTitle: 'Bharatiya Nagarik Suraksha Sanhita', year: 2023, namespace: 'bnss', itemHandle: '20099' },
+  {
+    shortTitle: 'Indian Penal Code',
+    year: 1860,
+    namespace: 'ipc',
+    repealedPdfUrl: 'https://www.indiacode.nic.in/repealedfileopen?rfilename=A1860-45.pdf',
+  },
+  {
+    shortTitle: 'Code of Criminal Procedure',
+    year: 1973,
+    namespace: 'statutes',
+    repealedPdfUrl: 'https://www.indiacode.nic.in/repealedfileopen?rfilename=A1974-2.pdf',
+  },
+  { shortTitle: 'Indian Contract Act', year: 1872, namespace: 'statutes', itemHandle: '2187' },
+  { shortTitle: 'Consumer Protection Act', year: 2019, namespace: 'statutes', itemHandle: '15256' },
+  { shortTitle: 'Right to Information Act', year: 2005, namespace: 'statutes', itemHandle: '2065' },
+  { shortTitle: 'Guardians and Wards Act', year: 1890, namespace: 'personal_law', itemHandle: '2318' },
+  { shortTitle: 'Code of Civil Procedure', year: 1908, namespace: 'cpc', itemHandle: '2191' },
 ];
 
 function sleep(ms) {
@@ -60,34 +81,11 @@ async function fetchWithRetry(url, options = {}) {
   throw lastErr;
 }
 
-// Browse-by-shorttitle listing for one starting letter. DSpace JSPUI browse
-// params confirmed via manual recon (type/sort_by/order/rpp/etal/starts_with).
-async function getBrowseListing(letter) {
-  const url = `${BASE_URL}/handle/${CENTRAL_ACTS_HANDLE}/browse?type=shorttitle&sort_by=3&order=ASC&rpp=200&etal=-1&null=&starts_with=${encodeURIComponent(letter)}`;
-  const res = await fetchWithRetry(url);
-  const html = await res.text();
-  const $ = cheerio.load(html);
-
-  const items = [];
-  $('a[href*="/handle/123456789/"]').each((_, el) => {
-    const href = $(el).attr('href');
-    const match = href.match(/\/handle\/123456789\/(\d+)/);
-    const title = $(el).text().trim();
-    if (match && title) items.push({ itemId: match[1], title, href });
-  });
-  return items;
-}
-
-function findActMatch(items, shortTitle) {
-  const needle = shortTitle.toLowerCase();
-  return items.find((it) => it.title.toLowerCase().includes(needle));
-}
-
 // Item page's <meta name="citation_pdf_url"> reliably points at the English
 // bitstream (DSpace populates this for Google Scholar indexing) — confirmed
 // via manual recon, and avoids matching on the Hindi-title link by mistake.
-async function resolveItemPdf(itemId) {
-  const itemUrl = `${BASE_URL}/handle/123456789/${itemId}?view_type=browse`;
+async function resolveItemPdf(itemHandle) {
+  const itemUrl = `${BASE_URL}/handle/123456789/${itemHandle}?view_type=browse`;
   const res = await fetchWithRetry(itemUrl);
   const html = await res.text();
   const $ = cheerio.load(html);
@@ -97,7 +95,25 @@ async function resolveItemPdf(itemId) {
     throw new Error(`no citation_pdf_url meta tag on item page ${itemUrl}`);
   }
   if (pdfUrl.startsWith('http://')) pdfUrl = pdfUrl.replace('http://', 'https://');
-  return { itemUrl, pdfUrl };
+  return { sourceUrl: itemUrl, pdfUrl };
+}
+
+// Repealed acts (repealed-act.jsp) link straight to a PDF via ?rfilename=,
+// with no item page to resolve at all.
+function resolveRepealedPdf(repealedPdfUrl) {
+  return { sourceUrl: repealedPdfUrl, pdfUrl: repealedPdfUrl };
+}
+
+// Bitstream URLs end in a real filename (.../bitstream/.../A187209.pdf);
+// repealedfileopen URLs carry it in the rfilename query param instead.
+function deriveFilename(pdfUrl) {
+  const u = new URL(pdfUrl);
+  if (u.pathname.toLowerCase().endsWith('.pdf')) {
+    return decodeURIComponent(u.pathname.split('/').pop());
+  }
+  const rfilename = u.searchParams.get('rfilename');
+  if (rfilename) return decodeURIComponent(rfilename);
+  throw new Error(`cannot derive a filename from pdfUrl: ${pdfUrl}`);
 }
 
 async function downloadPdf(pdfUrl, destPath) {
@@ -124,7 +140,6 @@ function manifestKey(act) {
 
 async function main() {
   const manifest = loadManifest();
-  const browseCache = {};
   const results = { downloaded: [], skipped: [], failed: [] };
 
   for (const act of TARGET_ACTS) {
@@ -141,20 +156,12 @@ async function main() {
 
     console.log(`\n=== ${act.shortTitle}, ${act.year} (namespace: ${act.namespace}) ===`);
     try {
-      if (!browseCache[act.startsWith]) {
-        browseCache[act.startsWith] = await getBrowseListing(act.startsWith);
-        await sleep(REQUEST_DELAY_MS);
-      }
+      const { sourceUrl, pdfUrl } = act.itemHandle
+        ? await resolveItemPdf(act.itemHandle)
+        : resolveRepealedPdf(act.repealedPdfUrl);
+      if (act.itemHandle) await sleep(REQUEST_DELAY_MS);
 
-      const match = findActMatch(browseCache[act.startsWith], act.shortTitle);
-      if (!match) {
-        throw new Error(`not found in browse listing for letter "${act.startsWith}" — check short title text or starting letter`);
-      }
-
-      const { itemUrl, pdfUrl } = await resolveItemPdf(match.itemId);
-      await sleep(REQUEST_DELAY_MS);
-
-      const filename = decodeURIComponent(pdfUrl.split('/').pop());
+      const filename = deriveFilename(pdfUrl);
       const destPath = path.join(destDir, filename);
       const sha256 = await downloadPdf(pdfUrl, destPath);
       await sleep(REQUEST_DELAY_MS);
@@ -163,8 +170,8 @@ async function main() {
         shortTitle: act.shortTitle,
         year: act.year,
         namespace: act.namespace,
-        itemHandle: `123456789/${match.itemId}`,
-        sourceUrl: itemUrl,
+        itemHandle: act.itemHandle ? `123456789/${act.itemHandle}` : null,
+        sourceUrl,
         pdfUrl,
         filename,
         downloadedAt: new Date().toISOString(),
@@ -189,7 +196,7 @@ async function main() {
   }
 }
 
-module.exports = { main, TARGET_ACTS, getBrowseListing, findActMatch, resolveItemPdf };
+module.exports = { main, TARGET_ACTS, resolveItemPdf, resolveRepealedPdf, deriveFilename };
 
 if (require.main === module) {
   main().catch((err) => {
