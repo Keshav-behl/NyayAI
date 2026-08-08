@@ -15,6 +15,7 @@ import LegalResearchPage from './pages/LegalResearchPage'
 import ChatPage from './pages/ChatPage'
 import OrganizationsPage from './pages/OrganizationsPage'
 import OrganizationDetailPage from './pages/OrganizationDetailPage'
+import AdminIngestionPage from './pages/AdminIngestionPage'
 import { Link, useLocation } from 'react-router-dom'
 
 function PublicNav() {
@@ -171,6 +172,9 @@ export default function App() {
           } />
           <Route path="/organizations/:id" element={
             <PrivateRoute><OrganizationDetailPage /></PrivateRoute>
+          } />
+          <Route path="/admin/ingestion" element={
+            <PrivateRoute><AdminIngestionPage /></PrivateRoute>
           } />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

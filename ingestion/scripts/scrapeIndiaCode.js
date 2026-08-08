@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const cheerio = require('cheerio');
+const { reportStatus } = require('./reportStatus');
 
 const BASE_URL = 'https://www.indiacode.nic.in';
 const SOURCES_DIR = path.join(__dirname, '..', 'sources');
@@ -178,6 +179,12 @@ async function main() {
         sha256,
       };
       saveManifest(manifest);
+      await reportStatus({
+        namespace: act.namespace,
+        shortTitle: act.shortTitle,
+        year: act.year,
+        stage: 'DOWNLOADED',
+      });
 
       console.log(`  OK -> ${act.namespace}/${filename}`);
       results.downloaded.push(act.shortTitle);

@@ -17,6 +17,7 @@ const logger = require('./utils/logger');
 const legalRouter = require('./routes/legal');
 const organizationsRouter = require('./routes/organizations');
 const chatRouter = require('./routes/chat');
+const adminRouter = require('./routes/admin');
 
 
 const app = express();
@@ -72,6 +73,7 @@ app.use('/api/v1/lawyers', lawyersRouter);
 app.use('/api/v1/consultations', consultationsRouter);
 app.use('/api/v1/organizations', organizationsRouter);
 app.use('/api/v1/chat', chatRouter);
+app.use('/api/v1/admin', adminRouter);
 
 app.get('/api/v1', (req, res) => {
   res.json({
