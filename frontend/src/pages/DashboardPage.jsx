@@ -27,6 +27,8 @@ const cards = [
   { title: 'Organizations', desc: 'Manage your firm or enterprise org', icon: '🏢', week: 'Week 6', link: '/organizations', ready: true },
 ]
 
+const ADMIN_CARD = { title: 'Ingestion Status', desc: 'Legal corpus MVP progress', icon: '📊', link: '/admin/ingestion', ready: true }
+
   return (
     <div className="min-h-screen bg-navy-900">
       <header className="flex items-center justify-between px-8 py-5 border-b border-white/10">
@@ -58,7 +60,7 @@ const cards = [
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {cards.map(c => (
+          {(user?.role === 'SUPER_ADMIN' ? [...cards, ADMIN_CARD] : cards).map(c => (
             c.ready ? (
               <Link key={c.title} to={c.link} className="card flex items-start gap-4 hover:border-saffron-500/50 transition-colors cursor-pointer">
                 <span className="text-3xl">{c.icon}</span>

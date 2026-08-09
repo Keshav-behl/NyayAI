@@ -14,9 +14,18 @@ const generateTokens = (userId, role) => {
   return { accessToken, refreshToken };
 };
 
+// Only CLIENT and LAWYER are self-serve roles. ORG_ADMIN is granted via
+// organization membership and SUPER_ADMIN is provisioned out-of-band
+// (backend/prisma/createAdminUser.js) — neither should be settable from a
+// public request body.
+const SELF_SERVE_ROLES = ['CLIENT', 'LAWYER'];
+
 exports.register = async (req, res, next) => {
   try {
     const { email, password, role = 'CLIENT' } = req.body;
+    if (!SELF_SERVE_ROLES.includes(role)) {
+      return res.status(400).json({ success: false, message: 'Invalid role' });
+    }
 
     const existing = await prisma.user.findUnique({ where: { email } });
     if (existing) {

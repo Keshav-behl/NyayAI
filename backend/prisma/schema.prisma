@@ -10,14 +10,14 @@ datasource db {
 }
 
 model User {
-  id            String   @id @default(uuid())
-  email         String   @unique
-  passwordHash  String
-  role          UserRole @default(CLIENT)
-  isVerified    Boolean  @default(false)
-  isActive      Boolean  @default(true)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  role         UserRole @default(CLIENT)
+  isVerified   Boolean  @default(false)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   profile       ClientProfile?
   lawyerProfile LawyerProfile?
@@ -93,7 +93,7 @@ model LawyerProfile {
 }
 
 model Organization {
-  id        String  @id @default(uuid())
+  id        String   @id @default(uuid())
   name      String
   type      OrgType
   gstin     String?
@@ -102,9 +102,9 @@ model Organization {
   address   String?
   city      String?
   state     String?
-  plan      OrgPlan @default(STARTER)
-  isActive  Boolean @default(true)
-  apiKey    String? @unique
+  plan      OrgPlan  @default(STARTER)
+  isActive  Boolean  @default(true)
+  apiKey    String?  @unique
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -297,4 +297,34 @@ model ChatMessage {
 enum ChatRole {
   USER
   ASSISTANT
+}
+
+// Tracks MVP ingestion progress for the acts in ingestion/scripts'
+// scope-locked list, one row per act. Written to by the ingestion scripts
+// (ingestion/scripts/reportStatus.js) as each phase completes, read by the
+// admin dashboard so deploy-readiness reflects the real pipeline state
+// rather than a manually-updated log.
+model IngestionStatus {
+  id               String         @id @default(uuid())
+  namespace        String
+  shortTitle       String
+  year             Int
+  stage            IngestionStage @default(PENDING)
+  sectionsIngested Int            @default(0)
+  sectionsTarget   Int?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  @@unique([namespace, shortTitle])
+  @@map("ingestion_status")
+}
+
+enum IngestionStage {
+  PENDING
+  DOWNLOADED
+  VALIDATED
+  CHUNKED
+  ENRICHED
+  REVIEWED
+  INGESTED
 }
